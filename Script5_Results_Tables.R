@@ -1,6 +1,6 @@
-############################################################
-# SCRIPT J — Results Tables
-############################################################
+
+## Script5_Results_Tables.R
+## Results Tables
 
 ### Table 1: Baseline characteristics
 rm(list = ls())
@@ -17,36 +17,27 @@ invisible(lapply(packages, function(pkg) {
 }))
 
 
-#  File paths ----
-raw_path_options <- c(
-  "C:/Users/lowyi/OneDrive/Documents/Edinburgh Masters/Year 3/2ND RUN OF EVERYTHING/Raw Data csv",
-  "C:/Users/YI MEI/OneDrive/Documents/Edinburgh Masters/Year 3/2ND RUN OF EVERYTHING/Raw Data csv"
-)
+#  File paths
+## Data files are not included in this repository.
 
-clean_path_options <- c(
-  "C:/Users/lowyi/OneDrive/Documents/Edinburgh Masters/Year 3/2ND RUN OF EVERYTHING/Results/Cleaned Data",
-  "C:/Users/YI MEI/OneDrive/Documents/Edinburgh Masters/Year 3/2ND RUN OF EVERYTHING/Results/Cleaned Data"
-)
+# Required inputs:
+## data/raw/original raw covariate and biomarker files
+## results/cleaned_data/analysis_df_final_v2.csv
+## results/cox_models/cox_results_main.csv
 
-table_path_options <- c(
-  "C:/Users/lowyi/OneDrive/Documents/Edinburgh Masters/Year 3/2ND RUN OF EVERYTHING/Results/Cox analysis/tables",
-  "C:/Users/YI MEI/OneDrive/Documents/Edinburgh Masters/Year 3/2ND RUN OF EVERYTHING/Results/Cox analysis/tables"
-)
+# Outputs:
+## results/tables/
 
-DIR_RAW <- raw_path_options[dir.exists(raw_path_options)][1]
-DIR_CLEAN <- clean_path_options[dir.exists(clean_path_options)][1]
-DIR_TABLES <- table_path_options[dir.exists(table_path_options)][1]
+DIR_RAW <- file.path("data", "raw")
+DIR_CLEAN <- file.path("results", "cleaned_data")
+DIR_COX <- file.path("results", "cox_models")
+DIR_TABLES <- file.path("results", "tables")
 
-if (is.na(DIR_RAW)) stop("Raw data folder not found.")
-if (is.na(DIR_CLEAN)) stop("Results/Cleaned Data folder not found.")
-
-if (is.na(DIR_TABLES)) {
-  DIR_TABLES <- table_path_options[2]
-  dir.create(DIR_TABLES, recursive = TRUE, showWarnings = FALSE)
-}
+dir.create(DIR_TABLES, recursive = TRUE, showWarnings = FALSE)
 
 cat("Using DIR_RAW:\n", DIR_RAW, "\n")
 cat("Using DIR_CLEAN:\n", DIR_CLEAN, "\n")
+cat("Using DIR_COX:\n", DIR_COX, "\n")
 cat("Saving tables to:\n", DIR_TABLES, "\n")
 
 #Load 
@@ -234,14 +225,10 @@ top_discordant_file <- file.path(DIR_TABLES, "scriptG_top20_discordant.csv")
 top_concordant <- read_csv(top_concordant_file, show_col_types = FALSE)
 top_discordant <- read_csv(top_discordant_file, show_col_types = FALSE)
 
-cat("\nLoaded Table 2 source files:\n")
 cat(top_concordant_file, "\n")
 cat(top_discordant_file, "\n")
-
-cat("\nConcordant columns:\n")
+  
 print(names(top_concordant))
-
-cat("\nDiscordant columns:\n")
 print(names(top_discordant))
 
 
@@ -276,18 +263,6 @@ table2 <- bind_rows(
 )
 
 print(table2, n = Inf)
-
-
-# QC
-qc_table2 <- tibble(
-  n_rows_table2 = nrow(table2),
-  n_concordant = sum(table2$Section == "Top concordant associations"),
-  n_discordant = sum(table2$Section == "Top discordant associations"),
-  n_missing_values = sum(is.na(table2))
-)
-
-print(qc_table2)
-
 
 # Save 
 csv_out_table2 <- file.path(DIR_TABLES, "results_table2_concordant_discordant_associations.csv")
