@@ -1,6 +1,5 @@
-### =========================================================
-### Disease dataset QC + metadata
-### =========================================================
+### Script2_Disease_Metadata.R
+### Disease Metadata and Eligibility Assessment
 
 # Disease eligibility rules for full loop analysis:
 # 1. Person-level modelling restricted to prevalent == 0
@@ -15,31 +14,29 @@ invisible(lapply(packages, function(x) {
 }))
 
 # File paths
-# If on laptop
-# DIR_RAW <- "C:/Users/lowyi/OneDrive/Documents/Edinburgh Masters/Year 3/2ND RUN OF EVERYTHING/Raw Data csv"
-# DIR_RESULTS <- "C:/Users/lowyi/OneDrive/Documents/Edinburgh Masters/Year 3/2ND RUN OF EVERYTHING/Results/Cleaned Data"
+## Data files are not included in this repository.
 
-## If on PC
-DIR_RAW <- "C:/Users/YI MEI/OneDrive/Documents/Edinburgh Masters/Year 3/2ND RUN OF EVERYTHING/Raw Data csv"
-DIR_RESULTS <- "C:/Users/YI MEI/OneDrive/Documents/Edinburgh Masters/Year 3/2ND RUN OF EVERYTHING/Results/Cleaned Data"
+# Required inputs:
+## data/raw/2025-09-11_EHR_diseases.csv
+## results/cleaned_data/analysis_df_final_v2.csv
+
+#Outputs:
+## results/metadata/
+
+DIR_RAW <- file.path("data", "raw")
+DIR_RESULTS <- file.path("results", "cleaned_data")
+DIR_METADATA <- file.path("results", "metadata")
+
+dir.create(DIR_METADATA, recursive = TRUE, showWarnings = FALSE)
 
 FILE_ANALYSIS <- file.path(DIR_RESULTS, "analysis_df_final_v2.csv")
-FILE_EHR_RAW  <- file.path(DIR_RAW, "2025-09-11_EHR_diseases.csv")
+FILE_EHR_RAW <- file.path(DIR_RAW, "2025-09-11_EHR_diseases.csv")
 
 analysis_df <- read_csv(FILE_ANALYSIS, show_col_types = FALSE) %>%
-  clean_names()
+clean_names()
 
 ehr_raw <- read_csv(FILE_EHR_RAW, show_col_types = FALSE) %>%
-  clean_names()
-
-# Checks
-qc_dims <- tibble(
-  dataset = c("analysis_df", "ehr_raw"),
-  n_rows = c(nrow(analysis_df), nrow(ehr_raw)),
-  n_cols = c(ncol(analysis_df), ncol(ehr_raw))
-)
-
-print(qc_dims)
+clean_names()
 
 # Unique IDs
 qc_ids <- tibble(
@@ -65,83 +62,8 @@ print(qc_diseases)
 print(names(analysis_df))
 print(names(ehr_raw))
 
-
 print(head(analysis_df, 10))
 print(head(ehr_raw, 10))
-
-### =========================================================
-### Disease naming QC
-### =========================================================
-# All unique disease names
-disease_list <- analysis_df %>%
-  distinct(disease) %>%
-  arrange(disease)
-
-print(disease_list, n = 300)
-
-# Check naming patterns
-qc_disease_names <- disease_list %>%
-  mutate(
-    has_space = str_detect(disease, " "),
-    has_upper = str_detect(disease, "[A-Z]"),
-    has_special = str_detect(disease, "[^a-z0-9_]")
-  )
-
-summary_qc <- qc_disease_names %>%
-  summarise(
-    n_total = n(),
-    n_with_spaces = sum(has_space, na.rm = TRUE),
-    n_with_uppercase = sum(has_upper, na.rm = TRUE),
-    n_with_special_chars = sum(has_special, na.rm = TRUE)
-  )
-
-print(summary_qc)
-
-disease_name_flags <- qc_disease_names %>%
-  filter(has_space | has_upper | has_special)
-
-print(disease_name_flags, n = 300)
-
-# Check for duplicates
-dup_id_disease <- analysis_df %>%
-  count(id, disease) %>%
-  filter(n > 1) %>%
-  arrange(desc(n), id, disease)
-
-print(dup_id_disease, n = 50)
-
-# QC summary
-qc_structure <- tibble(
-  n_rows_total = nrow(analysis_df),
-  n_unique_id_disease = analysis_df %>% distinct(id, disease) %>% nrow(),
-  n_duplicate_id_disease_rows = nrow(dup_id_disease)
-)
-
-print(qc_structure)
-
-### =========================================================
-### Survival variable QC
-### =========================================================
-
-qc_survival <- analysis_df %>%
-  summarise(
-    n_missing_prevalent = sum(is.na(prevalent)),
-    n_missing_event = sum(is.na(event)),
-    n_missing_time_to_event = sum(is.na(time_to_event_years)),
-    n_missing_t_censor = sum(is.na(t_censor_years))
-  )
-
-print(qc_survival)
-
-qc_event_logic <- analysis_df %>%
-  summarise(
-    n_event_1 = sum(event == 1, na.rm = TRUE),
-    n_event_0 = sum(event == 0, na.rm = TRUE),
-    n_prevalent_1 = sum(prevalent == 1, na.rm = TRUE),
-    n_prevalent_0 = sum(prevalent == 0, na.rm = TRUE)
-  )
-
-print(qc_event_logic)
 
 ### =========================================================
 ### Disease-level summary 
@@ -168,7 +90,6 @@ analysis_df <- analysis_df %>%
   mutate(
     # Cap follow-up at 10 years
     time_10y = pmin(time_to_event_years, 10),
-    
     # Event occurs only if within 10 years
     event_10y = case_when(
       event == 1 & time_to_event_years <= 10 ~ 1,
@@ -250,7 +171,7 @@ df_metadata %>%
 ### Load disease readme / mapping file
 ### =========================================================
 
-FILE_DISEASE_MAP <- "C:/Users/YI MEI/OneDrive/Documents/Edinburgh Masters/combined_disease_names_and_groups.txt"
+# Input relevant FILE_DISEASE_MAP 
 
 disease_map <- read_tsv(FILE_DISEASE_MAP, show_col_types = FALSE) %>%
   clean_names()
@@ -313,23 +234,6 @@ metadata_summary <- df_metadata %>%
   )
 
 print(metadata_summary)
-
-### =========================================================
-### Checking for unmatched diseases
-### =========================================================
-
-unmatched_in_metadata <- df_metadata %>%
-  filter(is.na(category) | category == "") %>%
-  arrange(disease)
-
-print(unmatched_in_metadata, n = 100)
-
-unmatched_in_map <- disease_map %>%
-  filter(!is.na(name), name != "") %>%
-  anti_join(df_metadata, by = c("name" = "disease")) %>%
-  arrange(name)
-
-print(unmatched_in_map, n = 100)
 
 ### =========================================================
 ### Save - analysis metadata table 
