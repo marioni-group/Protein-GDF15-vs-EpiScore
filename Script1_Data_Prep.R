@@ -16,20 +16,15 @@ invisible(lapply(packages, function(x) {
 }))
 
 # File paths
-raw_path_options <- c(
-  "C:/Users/lowyi/OneDrive/Documents/Edinburgh Masters/Year 3/2ND RUN OF EVERYTHING/Raw Data csv",   # laptop
-  "C:/Users/YI MEI/OneDrive/Documents/Edinburgh Masters/Year 3/2ND RUN OF EVERYTHING/Raw Data csv"    # PC
-)
+## Data files are not included in this repository.
+DIR_RAW <- file.path("data", "raw")
+DIR_PROCESSED <- file.path("data", "processed")
+DIR_RESULTS <- file.path("results", "cleaned_data")
 
-results_path_options <- c(
-  "C:/Users/lowyi/OneDrive/Documents/Edinburgh Masters/Year 3/2ND RUN OF EVERYTHING/Results/Cleaned Data",
-  "C:/Users/YI MEI/OneDrive/Documents/Edinburgh Masters/Year 3/2ND RUN OF EVERYTHING/Results/Cleaned Data"
-)
-
-DIR_RAW <- raw_path_options[file.exists(raw_path_options)][1]
-DIR_RESULTS <- results_path_options[file.exists(results_path_options)][1]
+dir.create(DIR_RESULTS, recursive = TRUE, showWarnings = FALSE)
 
 cat("Using DIR_RAW:\n", DIR_RAW, "\n")
+cat("Using DIR_PROCESSED:\n", DIR_PROCESSED, "\n")
 cat("Using DIR_RESULTS:\n", DIR_RESULTS, "\n")
 
 covar    <- read_csv(file.path(DIR_RAW, "2026-01-26_covariates.csv"), show_col_types = FALSE)
@@ -37,8 +32,7 @@ ehr      <- read_csv(file.path(DIR_RAW, "2025-09-11_EHR_diseases.csv"), show_col
 deaths   <- read_csv(file.path(DIR_RAW, "2025-09-11_deaths.csv"), show_col_types = FALSE)
 episcore <- read_csv(file.path(DIR_RAW, "2025-09-11_GDF15_episcore.csv"), show_col_types = FALSE)
 protein  <- read_csv(file.path(DIR_RAW, "2025-09-11_measured_GDF15.csv"), show_col_types = FALSE)
-metadata <- read_csv(file.path(DIR_RESULTS, "df_metadata_final.csv"), show_col_types = FALSE)
-
+metadata <- read_csv(file.path(DIR_PROCESSED, "df_metadata_final.csv"),  show_col_types = FALSE)
 
 # Standardise IDs
 covar    <- covar %>% mutate(id = as.character(id))
@@ -107,14 +101,8 @@ dup_check <- function(df, df_name) {
     filter(n > 1) %>%
     nrow()
   
-  cat("\n--- Duplicate ID check:", df_name, "---\n")
   cat("Duplicate IDs:", n_dup, "\n")
   
-  if (n_dup > 0) {
-    stop(paste("Duplicate IDs found in", df_name, "- fix before proceeding."))
-  }
-}
-
 dup_check(covar, "covar")
 dup_check(episcore, "episcore")
 dup_check(protein, "protein")
@@ -126,7 +114,6 @@ covar_cohort <- covar %>%
   semi_join(exposure_ids, by = "id") %>%
   filter(!is.na(rank))
 
-cat("\n--- Covariate cohort after rank restriction ---\n")
 cat("Rows      :", nrow(covar_cohort), "\n")
 cat("Unique IDs:", n_distinct(covar_cohort$id), "\n")
 cat("Missing rank:", sum(is.na(covar_cohort$rank)), "\n")
@@ -138,11 +125,9 @@ ehr_cohort <- ehr %>%
 deaths_cohort <- deaths %>%
   semi_join(covar_cohort %>% distinct(id), by = "id")
 
-cat("\n--- EHR cohort after restriction ---\n")
 cat("Rows      :", nrow(ehr_cohort), "\n")
 cat("Unique IDs:", n_distinct(ehr_cohort$id), "\n")
 
-cat("\n--- Deaths cohort after restriction ---\n")
 cat("Rows      :", nrow(deaths_cohort), "\n")
 cat("Unique IDs:", n_distinct(deaths_cohort$id), "\n")
 
@@ -160,7 +145,6 @@ deaths_clean <- deaths_cohort %>%
     dod_ym_date = safe_ym(dod_ym)
   )
 
-cat("\n--- Missing date QC ---\n")
 cat("EHR missing dt1_ym_date :", sum(is.na(ehr_clean$dt1_ym_date)), "\n")
 cat("EHR missing gs_appt_date:", sum(is.na(ehr_clean$gs_appt_date)), "\n")
 cat("Deaths missing dod_ym_date:", sum(is.na(deaths_clean$dod_ym_date)), "\n")
@@ -207,7 +191,6 @@ baseline_df2 %>%
 ehr_clean_inc <- ehr_clean %>%
   filter(disease %in% disease_list)
 
-cat("\n--- Included-disease EHR QC ---\n")
 cat("Rows      :", nrow(ehr_clean_inc), "\n")
 cat("Unique IDs:", n_distinct(ehr_clean_inc$id), "\n")
 cat("Diseases  :", n_distinct(ehr_clean_inc$disease), "\n")
@@ -220,7 +203,6 @@ full_grid <- tidyr::crossing(
   disease = disease_list
 )
 
-cat("\n--- Full grid QC ---\n")
 cat("Rows expected:", length(unique(baseline_df2$id)) * length(disease_list), "\n")
 cat("Rows actual  :", nrow(full_grid), "\n")
 cat("Unique IDs   :", n_distinct(full_grid$id), "\n")
@@ -268,7 +250,6 @@ analysis_base <- full_grid %>%
     event = if_else(is.na(event), 0L, event)
   )
 
-cat("\n--- Analysis base QC ---\n")
 analysis_base %>%
   summarise(
     n_rows = n(),
@@ -280,7 +261,6 @@ analysis_base %>%
   ) %>%
   print()
 
-cat("\nCheck one row per ID x disease:\n")
 print(
   analysis_base %>%
     count(id, disease) %>%
@@ -563,7 +543,6 @@ write_csv(
   file.path(DIR_RESULTS, "valid_ids_exposure_complete.csv")
 )
 
-cat("\nSaved files:\n")
 cat(file.path(DIR_RESULTS, "analysis_df_final_v2.csv"), "\n")
 cat(file.path(DIR_RESULTS, "analysis_df_final_v2.rds"), "\n")
 cat(file.path(DIR_RESULTS, "valid_ids_exposure_complete.csv"), "\n")
