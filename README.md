@@ -106,8 +106,6 @@ Generates all figures presented in the dissertation.
 Generates dissertation tables
 - Table 1: Baseline Characteristics
 - Table 2: Association Concordance Categories
-- Table 3: Disease Group Summaries
-- Additional summary tables used in the dissertation
 
 ---
 
