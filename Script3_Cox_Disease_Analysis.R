@@ -15,114 +15,28 @@ invisible(lapply(packages, function(x) {
   library(x, character.only = TRUE)
 }))
 
-# =========================================================
+
 # File paths
-# =========================================================
-analysis_path_options <- c(
-  "C:/Users/lowyi/OneDrive/Documents/Edinburgh Masters/Year 3/2ND RUN OF EVERYTHING/Results/Cleaned Data/analysis_df_final_v2.csv",
-  "C:/Users/YI MEI/OneDrive/Documents/Edinburgh Masters/Year 3/2ND RUN OF EVERYTHING/Results/Cleaned Data/analysis_df_final_v2.csv"
-)
+## Data files are not included in this repository
 
-metadata_path_options <- c(
-  "C:/Users/lowyi/OneDrive/Documents/Edinburgh Masters/Year 3/2ND RUN OF EVERYTHING/Results/Cleaned Data/df_metadata_final.csv",
-  "C:/Users/YI MEI/OneDrive/Documents/Edinburgh Masters/Year 3/2ND RUN OF EVERYTHING/Results/Cleaned Data/df_metadata_final.csv"
-)
+#Required inputs:
+## results/cleaned_data/analysis_df_final_v2.csv
+## results/metadata/df_metadata_final.csv
 
-results_path_options <- c(
-  "C:/Users/lowyi/OneDrive/Documents/Edinburgh Masters/Year 3/2ND RUN OF EVERYTHING/Results",
-  "C:/Users/YI MEI/OneDrive/Documents/Edinburgh Masters/Year 3/2ND RUN OF EVERYTHING/Results"
-)
+#Outputs:
+## results/cox_models/
 
-FILE_ANALYSIS <- analysis_path_options[file.exists(analysis_path_options)][1]
-FILE_METADATA <- metadata_path_options[file.exists(metadata_path_options)][1]
-DIR_RESULTS   <- results_path_options[file.exists(results_path_options)][1]
+DIR_CLEANED_DATA <- file.path("results", "cleaned_data")
+DIR_METADATA <- file.path("results", "metadata")
+DIR_COX_RESULTS <- file.path("results", "cox_models")
 
-if (is.na(FILE_ANALYSIS)) stop("analysis_df_final_v2.csv not found.")
-if (is.na(FILE_METADATA)) stop("df_metadata_final.csv not found.")
-if (is.na(DIR_RESULTS)) stop("Results folder not found.")
+dir.create(DIR_COX_RESULTS, recursive = TRUE, showWarnings = FALSE)
+
+FILE_ANALYSIS <- file.path(DIR_CLEANED_DATA, "analysis_df_final_v2.csv")
+FILE_METADATA <- file.path(DIR_METADATA, "df_metadata_final.csv")
 
 analysis_df <- read_csv(FILE_ANALYSIS, show_col_types = FALSE)
 metadata_df <- read_csv(FILE_METADATA, show_col_types = FALSE)
-
-### =================
-### Checks
-### =================
-
-print(dim(analysis_df))
-print(dim(metadata_df))
-print(n_distinct(analysis_df$id))
-print(n_distinct(analysis_df$disease))
-print(n_distinct(metadata_df$disease))
-
-print(
-  metadata_df %>%
-    filter(include_model == TRUE) %>%
-    summarise(n_included = n_distinct(disease))
-)
-
-print(head(sort(unique(metadata_df$disease)), 10))
-
-print(
-  metadata_df %>%
-    filter(include_model == TRUE) %>%
-    distinct(disease) %>%
-    arrange(disease) %>%
-    slice_head(n = 10)
-)
-
-required_analysis_cols <- c(
-  "id", "disease", "prevalent", "event",
-  "time_to_event_years", "t_censor_years",
-  "age", "sex", "bmi", "pack_years_num",
-  "education_cont", "alcohol_units_wins", "rank",
-  "gdf15_std", "gdf15_episcore_std"
-)
-
-qc_analysis_cols <- tibble(
-  variable = required_analysis_cols,
-  present = required_analysis_cols %in% names(analysis_df)
-)
-print(qc_analysis_cols)
-
-if (!all(required_analysis_cols %in% names(analysis_df))) {
-  stop("One or more required analysis columns are missing.")
-}
-
-required_metadata_cols <- c(
-  "disease", "disease_label", "category",
-  "n_incident_10y", "include_model", "exclude_reason"
-)
-
-qc_metadata_cols <- tibble(
-  variable = required_metadata_cols,
-  present = required_metadata_cols %in% names(metadata_df)
-)
-print(qc_metadata_cols)
-
-if (!all(required_metadata_cols %in% names(metadata_df))) {
-  stop("One or more required metadata columns are missing.")
-}
-
-print(
-  analysis_df %>%
-    summarise(
-      across(
-        all_of(required_analysis_cols),
-        ~ sum(is.na(.))
-      )
-    ) %>%
-    pivot_longer(
-      cols = everything(),
-      names_to = "variable",
-      values_to = "n_missing"
-    )
-)
-
-print(
-  analysis_df %>%
-    count(id, disease) %>%
-    summarise(max_n = max(n), n_duplicates = sum(n > 1))
-)
 
 ### ====================================
 ### 10-year survival variables
@@ -261,7 +175,7 @@ run_cox_models <- function(df, disease_name, metadata_df) {
     return(tibble())
   }
   
-  # Sex-specific rule based on event distribution
+  # Sex-specific rule - set at 90%
   female_event_n <- sum(df$event_10y == 1 & df$sex == "Female", na.rm = TRUE)
   total_event_n  <- sum(df$event_10y == 1, na.rm = TRUE)
   
@@ -519,7 +433,6 @@ saveRDS(
   file = file.path(DIR_COX, "cox_disease_summary.rds")
 )
 
-cat("\nSaved files:\n")
 cat(file.path(DIR_COX, "cox_results_main.csv"), "\n")
 cat(file.path(DIR_COX, "cox_failed_models_log.csv"), "\n")
 cat(file.path(DIR_COX, "cox_disease_summary.csv"), "\n")
