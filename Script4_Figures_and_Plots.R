@@ -1,5 +1,6 @@
 ### =========================
-### Script G: Final post-Cox analysis figures 
+### Script4_Figures_and_Plots.R
+### Final post-Cox analysis figures
 ### =========================
 
 rm(list = ls())
@@ -8,43 +9,39 @@ options(stringsAsFactors = FALSE)
 
 ### Packages
 packages <- c(
-  "dplyr",
-  "readr",
-  "stringr",
-  "tidyr",
-  "ggplot2",
-  "forcats",
-  "purrr",
-  "tibble",
-  "ggrepel"
+"dplyr",
+"readr",
+"stringr",
+"tidyr",
+"ggplot2",
+"forcats",
+"purrr",
+"tibble",
+"ggrepel"
 )
 
 invisible(lapply(packages, function(x) {
-  if (!requireNamespace(x, quietly = TRUE)) install.packages(x)
-  library(x, character.only = TRUE)
+if (!requireNamespace(x, quietly = TRUE)) install.packages(x)
+library(x, character.only = TRUE)
 }))
 
-### =========================
-### File paths
-### =========================
+# File paths
 
-results_path_options <- c(
-  "C:/Users/lowyi/OneDrive/Documents/Edinburgh Masters/Year 3/2ND RUN OF EVERYTHING/Results",
-  "C:/Users/YI MEI/OneDrive/Documents/Edinburgh Masters/Year 3/2ND RUN OF EVERYTHING/Results"
-)
+# Required inputs:
+## results/cox_models/cox_results_main.csv
 
-DIR_RESULTS <- results_path_options[file.exists(results_path_options)][1]
+# Outputs:
+## results/figures/
+## results/tables/
 
-DIR_COX <- file.path(DIR_RESULTS, "Cox analysis")
-DIR_FIG <- file.path(DIR_COX, "figures")
-DIR_TAB <- file.path(DIR_COX, "tables")
+DIR_COX <- file.path("results", "cox_models")
+DIR_FIG <- file.path("results", "figures")
+DIR_TAB <- file.path("results", "tables")
 
-dir.create(DIR_COX, showWarnings = FALSE, recursive = TRUE)
-dir.create(DIR_FIG, showWarnings = FALSE, recursive = TRUE)
-dir.create(DIR_TAB, showWarnings = FALSE, recursive = TRUE)
+dir.create(DIR_FIG, recursive = TRUE, showWarnings = FALSE)
+dir.create(DIR_TAB, recursive = TRUE, showWarnings = FALSE)
 
 cox_results_file <- file.path(DIR_COX, "cox_results_main.csv")
-
 cox_results <- read_csv(cox_results_file, show_col_types = FALSE)
 
 ### =========================
