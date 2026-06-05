@@ -1,6 +1,5 @@
-### =========================================================
-### Script F: Full looping Cox analysis across 173 diseases
-### =========================================================
+### Script3_Cox_Disease_Analysis.R
+### Full looping Cox analysis across 173 diseases
 
 rm(list = ls())
 options(stringsAsFactors = FALSE)
